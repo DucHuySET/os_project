@@ -1,0 +1,7 @@
+[
+  {"name": "test_sha_copy.txt", "full_path": "./test_folder_1/test_sha_copy.txt"},
+  {"name": "test_sha_copy_2.txt", "full_path": "./test_folder_1/test_sha_copy_2.txt"},
+  {"name": "test_sha.txt", "full_path": "./test_folder_1/test_sha.txt"},
+  {"name": "test_sha copy_2_1.txt", "full_path": "./test_folder_2/test_sha copy_2_1.txt"},
+  {"name": "test_sha_2_2.txt", "full_path": "./test_folder_2/test_sha_2_2.txt"}
+]
