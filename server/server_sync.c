@@ -7,40 +7,21 @@
 #include <netinet/in.h>
 #include <poll.h>
 
+#include "../utils/folder_utils.h"
+
 #define PORT 12345
 #define MAX_BUFFER_SIZE 1024
+#define MAX_JSON_LENGTH 4096
+#define GET "GET"
+#define PUT "PUT"
+#define POST "POST"
 
-void sync_directory(int client_socket) {
-
-    char buffer[MAX_BUFFER_SIZE];
-
-    // Nhận yêu cầu từ client
-    ssize_t received_bytes = recv(client_socket, buffer, sizeof(buffer), 0);
-    if (received_bytes <= 0) {
-        perror("Error receiving data");
-        return;
-    }
-
-    buffer[received_bytes] = '\0'; // Đảm bảo kết thúc chuỗi
-
-    // Kiểm tra nếu là yêu cầu đóng kết nối
-    if (strcmp(buffer, "EXIT") == 0) {
-        printf("Client requested to close connection. Closing...\n");
-        // Đóng kết nối
-        close(client_socket);
-    } else {
-        // Thực hiện đồng bộ thư mục hoặc xử lý yêu cầu từ client ở đây
-        printf("Received request from client: %s\n", buffer);
-
-        // Gửi phản hồi về client
-        char response[MAX_BUFFER_SIZE] = "Request received successfully. With content: ";
-        strcat(response, buffer);
-        send(client_socket, response, strlen(response), 0);
-        send(client_socket, buffer, strlen(buffer), 0);
-    }
-}
+void sync_directory(int client_socket);
+void process_get(int client_socket);
+// void cut_string(int a, int b, char *src);
 
 int main() {
+    process_get(0);
     int server_socket, client_socket;
     struct sockaddr_in server_address, client_address;
     socklen_t client_address_len = sizeof(client_address);
@@ -74,6 +55,7 @@ int main() {
     fds[0].fd = server_socket;
     fds[0].events = POLLIN; // Check read event
 
+    int count_tmp = 0;
     while (1) {
         // Use poll() to check event on socket server
         int activity = poll(fds, 1, -1);
@@ -95,8 +77,17 @@ int main() {
 
                 // Remove client socket
                 close(client_socket);
+                
             }
+            // Update the fds array after accepting a new connection
+            fds[1].fd = client_socket;
+            fds[1].events = POLLIN;
         }
+        if (fds[1].revents & POLLHUP) {
+            printf("Client disconnected. Exiting...\n");
+            break;
+        }
+        count_tmp++;
     }
 
     // Remove server socket after all
@@ -104,3 +95,55 @@ int main() {
 
     return 0;
 }
+
+void sync_directory(int client_socket) {
+
+    char buffer[MAX_BUFFER_SIZE];
+
+    // Nhận yêu cầu từ client
+    ssize_t received_bytes = recv(client_socket, buffer, sizeof(buffer), 0);
+    if (received_bytes <= 0) {
+        perror("Error receiving data");
+        return;
+    }
+
+    buffer[received_bytes] = '\0'; // Đảm bảo kết thúc chuỗi
+
+    // Kiểm tra nếu là yêu cầu đóng kết nối
+    if (strcmp(buffer, "EXIT") == 0) {
+        printf("Client requested to close connection. Closing...\n");
+        // Đóng kết nối
+        close(client_socket);
+    } else {
+        // Thực hiện đồng bộ thư mục hoặc xử lý yêu cầu từ client ở đây
+        printf("Received request from client: %s\n", buffer);
+        printf("ghghg\n");
+        // Gửi phản hồi về client
+        char response[MAX_BUFFER_SIZE] = "Request received successfully. With content: ";
+        strcat(response, buffer);
+        send(client_socket, response, strlen(response), 0);
+        if(strcmp(buffer, GET)==0){
+            process_get(client_socket);
+        }
+    }
+}
+
+void process_get(int client_socket){
+    char json_tmp[MAX_BUFFER_SIZE];
+    json_tmp[0]='\0';
+    printf("%s\n", json_tmp);
+    explore_directory("../test/test_folder_2", json_tmp);
+    printf("%s\n", json_tmp);
+    // char filename = "json_tmp.json";
+    // FILE * file = fopen(filename, "w+");
+    // if (file == NULL){
+
+    // }
+    // fprintf(file, "\n", json_tmp);
+}
+
+// void cut_string(char *src, int n) {
+//     for (int i = 0; i < n; i++) {
+//         if (*(src + i) )
+//     }
+// }
