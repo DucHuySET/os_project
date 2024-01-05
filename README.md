@@ -30,6 +30,9 @@ gcc client.c ../utils/*.c ../include/*.c  -o client -lssl -lcrypto
 ```
 result: 
 Connected to server
+
 Enter a command:
+
 Input: "src dest GET"
+
 Then observe result
