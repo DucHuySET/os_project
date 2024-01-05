@@ -5,7 +5,12 @@
 #include <sys/stat.h>
 #include <stdbool.h>
 
-#define MAX_PATH_LENGTH 256
+#define MAX_PATH_LENGTH 1024
+
+# define DIR_T	4
+# define FILE_T 8
+
+
 
 typedef struct {
     char name[MAX_PATH_LENGTH];
@@ -20,18 +25,20 @@ int main() {
     const char *folder1 = "./test_folder_1";
     const char *folder2 = "./test_folder_2";
 
-    char jsonOutput1[4096];  // Adjust the size based on your needs
-    char jsonOutput2[4096];
+    char jsonOutput1[4096] = "";  // Adjust the size 
+    char jsonOutput2[4096] = "";
 
-    DistinguishedItem distinguishedItems[1024];  // Adjust the size based on your needs
+    DistinguishedItem distinguishedItems[1024];  // Adjust the size 
     int count = 0;
 
     explore_directory(folder1, 0, jsonOutput1, distinguishedItems, &count);
     explore_directory(folder2, 0, jsonOutput2, distinguishedItems, &count);
+    printf("%s\n", jsonOutput1);
+    printf("/////////////////////\n");
+    printf("%s\n", jsonOutput2);
 
     if (compare_folders(jsonOutput1, jsonOutput2, distinguishedItems, &count)) {
         printf("Folders are identical.\n");
-        printf("Folders are different. Distinguished items have been saved to 'distinguished_items.json'.\n");
         print_distinguished_to_json("distinguished_items.json", distinguishedItems, count);
     } else {
         printf("Folders are different. Distinguished items have been saved to 'distinguished_items.json'.\n");
@@ -46,6 +53,8 @@ void explore_directory(const char *path, int indent, char *jsonOutput, Distingui
     struct dirent *entry;
     struct stat file_stat;
 
+    char jsonOutput_tmp[4096];
+
     if ((dir = opendir(path)) == NULL) {
         perror("Error opening directory");
         exit(EXIT_FAILURE);
@@ -53,67 +62,11 @@ void explore_directory(const char *path, int indent, char *jsonOutput, Distingui
 
     while ((entry = readdir(dir)) != NULL) {
         if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
-            for (int i = 0; i < indent; i++) {
-                if (snprintf(jsonOutput, 4096, "  ") < 0) {
-                    fprintf(stderr, "Error: Buffer overflow.\n");
-                    exit(EXIT_FAILURE);
-                }
+            if(entry->d_type == 8){
+                sprintf(jsonOutput_tmp, "{\n\t\"name\":\"%s\",\n\t\"type\":\"%d\"\n}\n", entry->d_name, entry->d_type);
+            strcat(jsonOutput, jsonOutput_tmp);
             }
-
-            char full_path[MAX_PATH_LENGTH];
-            snprintf(full_path, sizeof(full_path)+1, "%s/%s", path, entry->d_name);
-            printf("%s\n", full_path);
-
-            if (stat(full_path, &file_stat) == -1) {
-                perror("Error getting file stat");
-                exit(EXIT_FAILURE);
-            }
-
-            if (snprintf(jsonOutput, 4096, "{\n") < 0) {
-                fprintf(stderr, "Error: Buffer overflow.\n");
-                exit(EXIT_FAILURE);
-            }
-
-            for (int i = 0; i < indent + 1; i++) {
-                if (snprintf(jsonOutput, 4096, "  ") < 0) {
-                    fprintf(stderr, "Error: Buffer overflow.\n");
-                    exit(EXIT_FAILURE);
-                }
-            }
-
-            if (snprintf(jsonOutput, 4096, "\"name\": \"%s\", \"type\": ", entry->d_name) < 0) {
-                fprintf(stderr, "Error: Buffer overflow.\n");
-                exit(EXIT_FAILURE);
-            }
-
-            if (S_ISDIR(file_stat.st_mode)) {
-                if (snprintf(jsonOutput, 4096, "\"folder\",\n") < 0) {
-                    fprintf(stderr, "Error: Buffer overflow.\n");
-                    exit(EXIT_FAILURE);
-                }
-                explore_directory(full_path, indent + 1, jsonOutput, distinguishedItems, count);
-            } else {
-                if (snprintf(jsonOutput, 4096, "\"file\"\n") < 0) {
-                    fprintf(stderr, "Error: Buffer overflow.\n");
-                    exit(EXIT_FAILURE);
-                }
-                // Save distinguished file
-                strcpy(distinguishedItems[*count].name, entry->d_name);
-                strcpy(distinguishedItems[*count].full_path, full_path);
-                (*count)++;
-            }
-
-            for (int i = 0; i < indent; i++) {
-                if (snprintf(jsonOutput, 4096, "  ") < 0) {
-                    fprintf(stderr, "Error: Buffer overflow.\n");
-                    exit(EXIT_FAILURE);
-                }
-            }
-
-            if (snprintf(jsonOutput, 4096, "}\n") < 0) {
-                fprintf(stderr, "Error: Buffer overflow.\n");
-                exit(EXIT_FAILURE);
-            }
+            
         }
     }
 

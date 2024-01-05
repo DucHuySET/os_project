@@ -1,3 +1,27 @@
+/** identify folder or file following document in dirent.h
+ *  Enum {
+    DT_UNKNOWN = 0,
+# define DT_UNKNOWN	DT_UNKNOWN
+    DT_FIFO = 1,
+# define DT_FIFO	DT_FIFO
+    DT_CHR = 2,
+# define DT_CHR		DT_CHR
+    DT_DIR = 4,
+# define DT_DIR		DT_DIR directory
+    DT_BLK = 6,
+# define DT_BLK		DT_BLK
+    DT_REG = 8,
+# define DT_REG		DT_REG regular file
+    DT_LNK = 10,
+# define DT_LNK		DT_LNK
+    DT_SOCK = 12,
+# define DT_SOCK	DT_SOCK
+    DT_WHT = 14
+# define DT_WHT		DT_WHT
+  };
+*/
+
+
 #ifndef FOLDER_UTILS_H
 #define FOLDER_UTILS_H
 
@@ -9,6 +33,11 @@
 #define MAX_FILE_QUANTITY 100
 #define MAX_FOLDER_QUANTITY 50
 #define MAX_PATH_LENGTH 1024
+#define MAX_JSON_BUFFER 4096
+#define SHA256_DIGEST_HEX_LENGTH (SHA256_DIGEST_LENGTH * 2)
+
+# define DIR_T	4
+# define FILE_T 8
 
 typedef struct file_struc{
     char name[MAX_NAME_LENGTH];
@@ -24,6 +53,7 @@ typedef struct folder_struc{
 } folder_struc;
 
 int calculate_sha256(const char *file_path, unsigned char hash[SHA256_DIGEST_LENGTH]);
-int 
+void explore_directory(const char *path, char *jsonOutput);
+char *hash_to_string(unsigned char hash[SHA256_DIGEST_LENGTH]);
 
 #endif

@@ -8,6 +8,7 @@
 #include <poll.h>
 
 #include "../utils/folder_utils.h"
+#include "../include/cJSON.h"
 
 #define PORT 12345
 #define MAX_BUFFER_SIZE 1024
@@ -18,10 +19,10 @@
 
 void sync_directory(int client_socket);
 void process_get(int client_socket);
+void clearBuffer(char buffer[MAX_BUFFER_SIZE]);
 // void cut_string(int a, int b, char *src);
 
 int main() {
-    process_get(0);
     int server_socket, client_socket;
     struct sockaddr_in server_address, client_address;
     socklen_t client_address_len = sizeof(client_address);
@@ -117,7 +118,6 @@ void sync_directory(int client_socket) {
     } else {
         // Thực hiện đồng bộ thư mục hoặc xử lý yêu cầu từ client ở đây
         printf("Received request from client: %s\n", buffer);
-        printf("ghghg\n");
         // Gửi phản hồi về client
         char response[MAX_BUFFER_SIZE] = "Request received successfully. With content: ";
         strcat(response, buffer);
@@ -129,21 +129,52 @@ void sync_directory(int client_socket) {
 }
 
 void process_get(int client_socket){
+    char buffer[MAX_BUFFER_SIZE];
     char json_tmp[MAX_BUFFER_SIZE];
     json_tmp[0]='\0';
     printf("%s\n", json_tmp);
     explore_directory("../test/test_folder_2", json_tmp);
-    printf("%s\n", json_tmp);
-    // char filename = "json_tmp.json";
-    // FILE * file = fopen(filename, "w+");
-    // if (file == NULL){
+    send(client_socket, json_tmp, strlen(json_tmp), 0);
 
-    // }
-    // fprintf(file, "\n", json_tmp);
+    //receive list file req from client
+    clearBuffer(buffer);
+    recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
+    clearBuffer(json_tmp);
+    strcpy(json_tmp, buffer);
+    clearBuffer(buffer);
+
+    cJSON* list_req_file = cJSON_Parse(json_tmp);
+    cJSON* item_tmp;
+    if (list_req_file == NULL || !cJSON_IsArray(list_req_file)) {
+        fprintf(stderr, "Error: Invalid JSON list file req array.\n");
+        return ;
+    }
+    cJSON_ArrayForEach(item_tmp, list_req_file){
+        
+        cJSON* file_path = cJSON_GetObjectItem(item_tmp, "full_path");
+        
+        if(cJSON_IsString(file_path) && (file_path->valuestring) != NULL){
+            FILE* file = fopen(file_path->valuestring, "r");
+            if(!file){
+                perror("Error opening file\n");
+                exit(EXIT_FAILURE); 
+            }
+            while (1)
+            {   
+                size_t byte_read = fread(buffer, 1, MAX_BUFFER_SIZE, file);
+                if (byte_read <= 0) {
+                    break; // End of file or error
+                }
+                if (send(client_socket, buffer, byte_read, 0) == -1) {
+                    perror("Error sending data\n");
+                    fclose(file);
+                    exit(EXIT_FAILURE);
+                }
+            }
+        }
+    }
 }
 
-// void cut_string(char *src, int n) {
-//     for (int i = 0; i < n; i++) {
-//         if (*(src + i) )
-//     }
-// }
+void clearBuffer(char buffer[MAX_BUFFER_SIZE]){
+    memset(buffer, 0, MAX_BUFFER_SIZE);
+}

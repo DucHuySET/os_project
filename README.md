@@ -7,4 +7,5 @@ option
 -- get: one way from server to client
 -- put: one way from client to server
 -- post: two ways sync
-# os
+
+gcc server_sync.c ../utils/*.c -o server -lssl -lcrypto
