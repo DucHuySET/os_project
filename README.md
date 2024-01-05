@@ -2,7 +2,8 @@
 ##A project emulate rsync
 
 client syntax: source_address destination_address options
-source_address & destination_address
+
+source_address & destination_address (pending)
 - for local: folder_path
 - for outer_computer: ip_address@folder_path
 
