@@ -25,6 +25,10 @@ void parseInput(char* parsedInput[MAX_WORDS], char user_input[MAX_BUFFER_SIZE]);
 
 void do_get(int client_socket);
 
+void do_put(int client_socket);
+
+void do_post(int client_socket);
+
 void clearBuffer(char buffer[MAX_BUFFER_SIZE]);
 
 void compare_json_obj_to_GET(cJSON* json_Obj_Response, cJSON* json_Obj_Client, cJSON* list_req_file, int* file_count);
@@ -83,11 +87,6 @@ int main() {
             printf("Option not valid, please check again!");
             break;
         }
-
-        // Nhận phản hồi từ server
-        // char sync_status[MAX_BUFFER_SIZE];
-        // recv(client_socket, sync_status, MAX_BUFFER_SIZE, 0);
-        // printf("Server response: %s\n", sync_status);
         
         count_tmp++;
     }
