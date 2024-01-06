@@ -1,7 +1,7 @@
 #Operator System Project
 ##A project emulate rsync
 
-client syntax: ./client source_address destination_address options
+client syntax: ./client source_path destination_address@destination_path options
 
 source_address & destination_address (pending)
 - for local: folder_path
@@ -35,3 +35,13 @@ result:
 Connected to server
 
 Then observe result
+
+For sync between two computer, firstly get server ip address with run in terminal
+
+```
+ip a
+```
+or 
+```
+hostname -I
+```
