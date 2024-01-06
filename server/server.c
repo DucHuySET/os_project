@@ -9,6 +9,7 @@
 
 #include "../utils/folder_utils.h"
 #include "../include/cJSON.h"
+#include <stdbool.h>
 
 #define PORT 12345
 #define MAX_BUFFER_SIZE 1024
@@ -19,8 +20,9 @@
 
 void sync_directory(int client_socket);
 void process_get(int client_socket);
+void process_put(int client_socket);
 void clearBuffer(char buffer[MAX_BUFFER_SIZE]);
-// void cut_string(int a, int b, char *src);
+void compare_json_obj_to_GET(cJSON* json_Obj_Response, cJSON* json_Obj_Client, cJSON* list_req_file, int* file_count);
 
 int main() {
     int server_socket, client_socket;
@@ -110,22 +112,24 @@ void sync_directory(int client_socket) {
 
     buffer[received_bytes] = '\0'; // Đảm bảo kết thúc chuỗi
 
-    // Kiểm tra nếu là yêu cầu đóng kết nối
-    if (strcmp(buffer, "EXIT") == 0) {
-        printf("Client requested to close connection. Closing...\n");
-        // Đóng kết nối
-        close(client_socket);
-    } else {
-        // Thực hiện đồng bộ thư mục hoặc xử lý yêu cầu từ client ở đây
-        printf("Received request from client: %s\n", buffer);
-        // Gửi phản hồi về client
-        char response[MAX_BUFFER_SIZE] = "Request received successfully. With content: ";
-        strcat(response, buffer);
-        send(client_socket, response, strlen(response), 0);
-        if(strcmp(buffer, GET)==0){
-            process_get(client_socket);
-        }
+    // Thực hiện đồng bộ thư mục hoặc xử lý yêu cầu từ client ở đây
+    printf("Received request from client: %s\n", buffer);
+    // Gửi phản hồi về client
+    char response[MAX_BUFFER_SIZE] = "Request received successfully. With content: ";
+    strcat(response, buffer);
+    send(client_socket, response, strlen(response), 0);
+    if(strcmp(buffer, GET)==0){
+        process_get(client_socket);
+    }else if(strcmp(buffer, PUT) == 0){
+        process_put(client_socket);
+    }else if(strcmp(buffer, POST) == 0){
+        process_get(client_socket);
+        process_put(client_socket);
     }
+}
+
+void clearBuffer(char buffer[MAX_BUFFER_SIZE]){
+    memset(buffer, 0, MAX_BUFFER_SIZE);
 }
 
 void process_get(int client_socket){
@@ -175,6 +179,89 @@ void process_get(int client_socket){
     }
 }
 
-void clearBuffer(char buffer[MAX_BUFFER_SIZE]){
-    memset(buffer, 0, MAX_BUFFER_SIZE);
+void process_put(int client_socket){
+    char buffer[MAX_BUFFER_SIZE];
+    char json_tmp[MAX_BUFFER_SIZE];
+    clearBuffer(json_tmp);
+    clearBuffer(buffer);
+    recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
+    strcpy(json_tmp, buffer);
+    clearBuffer(buffer);
+
+    char ser_dir[MAX_BUFFER_SIZE];
+    explore_directory("../test/test_folder_2",ser_dir);
+    cJSON* json_object_client = cJSON_Parse(json_tmp);
+    cJSON* json_object_ser = cJSON_Parse(ser_dir);
+    cJSON* json_list_file = cJSON_CreateArray();
+
+    if (json_object_client == NULL || !cJSON_IsArray(json_object_client) || json_object_ser == NULL || !cJSON_IsArray(json_object_ser)) {
+        fprintf(stderr, "Error: Invalid JSON array.\n");
+        return ;
+    }
+    int file_req_count = 0;
+    compare_json_obj_to_GET(json_object_client, json_object_ser, json_list_file, &file_req_count);
+    strcpy(buffer, cJSON_Print(json_list_file));
+    send(client_socket, buffer, strlen(buffer), 0);
+    int i;
+    for(i=0; i<file_req_count; i++){
+        size_t bytes_recv;
+        bytes_recv = recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
+        if (bytes_recv <= 0){
+            break;
+        }
+        cJSON* item = cJSON_GetArrayItem(json_list_file, i);
+        cJSON* name_file = cJSON_GetObjectItem(item, "name");
+        char file_path_name[MAX_PATH_LENGTH] = "../test/test_folder_2/";
+        strcat(file_path_name, name_file->valuestring);
+        FILE* file = fopen(file_path_name, "w");
+        if(file == NULL)
+        {
+            perror("[-]Error in creating file.\n");
+            exit(1);
+        }
+        fprintf(file, "%s", buffer);
+        clearBuffer(buffer);
+        fclose(file);
+    }
+}
+
+void compare_json_obj_to_GET(cJSON* json_Obj_Response, cJSON* json_Obj_Client, cJSON* list_req_file, int* file_count){
+    bool check = false;
+    cJSON *item_res, *item_cli;
+    cJSON_ArrayForEach(item_res, json_Obj_Response){
+        cJSON* name_res = cJSON_GetObjectItem(item_res, "name");
+        cJSON* hash_res = cJSON_GetObjectItem(item_res, "hash");
+        if (cJSON_IsString(name_res) && (name_res->valuestring != NULL)) { 
+            char* file_name_res = name_res->valuestring;
+            // Tim file trong json client
+            cJSON_ArrayForEach(item_cli, json_Obj_Client){
+                cJSON* name_cli = cJSON_GetObjectItem(item_cli, "name");
+                
+                if(strcmp(file_name_res, name_cli->valuestring) == 0){
+                    cJSON* hash_cli = cJSON_GetObjectItem(item_cli, "hash");
+                    
+                    if(strcmp(hash_res->valuestring, hash_cli->valuestring) == 0){
+                        printf("File %s exist on both.\n", file_name_res);
+                        check = true;
+                        break;
+                    }else{
+                        
+                        printf("File %s with same name but different.\n", file_name_res);
+                        check = true; //TODO: need to get same name file
+                    }
+                }
+            }
+
+            if(!check){
+                printf("File %s need client to send.\n", file_name_res);
+                cJSON *file_obj = cJSON_CreateObject();
+                cJSON_AddStringToObject(file_obj, "name", name_res->valuestring);
+                cJSON * full_path_res = cJSON_GetObjectItem(item_res, "full_path"); 
+                cJSON_AddStringToObject(file_obj, "full_path", full_path_res->valuestring);
+                cJSON_AddItemToArray(list_req_file, file_obj);
+                (*file_count)++;
+            }
+            check =  false;
+        } 
+    }
 }
