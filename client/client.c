@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "../utils/folder_utils.h"
 #include "../include/cJSON.h"
@@ -62,11 +63,9 @@ int main(int argc, char* argv[]) {
         strcpy(src_path, argv[1]);
     }
     parse_dest(dest_ip, dest_path, argv[2]); 
-
+    
     int client_socket;
     struct sockaddr_in server_address;
-    char user_input[MAX_BUFFER_SIZE];
-    char* parsedInput[MAX_WORDS];
 
     // Tạo socket
     client_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -77,8 +76,15 @@ int main(int argc, char* argv[]) {
 
     // Cấu hình địa chỉ server
     server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = INADDR_ANY;
     server_address.sin_port = htons(PORT);
+
+    if (strlen(dest_ip) == 0){
+        server_address.sin_addr.s_addr = INADDR_ANY;
+    }else{
+        if (inet_pton(AF_INET, dest_ip, &server_address.sin_addr) <= 0) {
+            perror("Invalid address/Address not supported");
+        }
+    }
 
     // Kết nối đến server
     if (connect(client_socket, (struct sockaddr*)&server_address, sizeof(server_address)) == -1) {
