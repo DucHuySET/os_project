@@ -1,7 +1,7 @@
 #Operator System Project
 ##A project emulate rsync
 
-client syntax: ./client source_address destination_address options
+client syntax: ./client source_path destination_ip_addr@destination_path options
 
 source_address & destination_address (pending)
 - for local: folder_path
@@ -23,7 +23,7 @@ gcc server.c ../utils/*.c ../include/*.c  -o server -lssl -lcrypto
 ```
 result: Server listening on port 12345...
 
-for client, can modify GET, PUT, POST
+for client, can modify GET, PUT, POST, run in other terminal
 ```
 cd ..
 cd client
@@ -35,3 +35,5 @@ result:
 Connected to server
 
 Then observe result
+
+For sync between other pc, get ip address by run (ip a) or (hostname -I) in terminal
