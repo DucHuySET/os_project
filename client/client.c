@@ -26,11 +26,11 @@ void getUserInput(char user_input[MAX_BUFFER_SIZE], int* retFlag);
 
 void parseInput(char* parsedInput[MAX_WORDS], char user_input[MAX_BUFFER_SIZE]);
 
-void do_get(int client_socket);
+void do_get(int client_socket, char* src_path);
 
-void do_put(int client_socket);
+void do_put(int client_socket, char* src_path);
 
-void do_post(int client_socket);
+void do_post(int client_socket, char* src_path);
 
 void clearBuffer(char buffer[MAX_BUFFER_SIZE]);
 
@@ -38,7 +38,7 @@ void compare_json_obj_to_GET(cJSON* json_Obj_Response, cJSON* json_Obj_Client, c
 
 void print_syntax();
 
-void parse_dest();
+void parse_dest(char *dest_ip, char *dest_path, char *input);
 
 bool is_valid_path(const char *path);
 
@@ -86,29 +86,33 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    send(client_socket, dest_path, sizeof(dest_path), 0);
+    char buffer[MAX_BUFFER_SIZE];
+    recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
+    printf("%s\n", buffer);
+
     printf("Connected to server.\n");
     
     if (strcmp(argv[3], GET) == 0){
         send(client_socket, GET, sizeof(GET), 0);
-        char buffer[MAX_BUFFER_SIZE];
         recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
         printf("%s\n", buffer);
-        do_get(client_socket);
+        do_get(client_socket, src_path);
     }else if (strcmp(argv[3], PUT) == 0)
     {   
         send(client_socket, PUT, sizeof(PUT), 0);
-        char buffer[MAX_BUFFER_SIZE];
         clearBuffer(buffer);
         recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
-        do_put(client_socket);
+        printf("%s\n", buffer);
+        do_put(client_socket, src_path);
     }else if (strcmp(argv[3], POST) == 0)
     {   
         send(client_socket, POST, sizeof(POST), 0);
-        char buffer[MAX_BUFFER_SIZE];
         clearBuffer(buffer);
         recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
-        do_get(client_socket);
-        do_put(client_socket);
+        printf("%s\n", buffer);
+        do_get(client_socket, src_path);
+        do_put(client_socket, src_path);
     }else {
         printf("Method not valid, please check again!");
         return 1;
@@ -234,7 +238,7 @@ bool is_valid_path(const char *path) {
 }
 
 
-void do_get(int client_socket){
+void do_get(int client_socket, char *src_path){
     printf("GET start!\n");
     char response[MAX_BUFFER_SIZE];
     char buffer[MAX_BUFFER_SIZE];
@@ -245,7 +249,7 @@ void do_get(int client_socket){
     clearBuffer(buffer);
     // Create clinet's folder json
     char client_dir[MAX_JSON_BUFFER];
-    explore_directory("../test/test_folder_1", client_dir);
+    explore_directory(src_path, client_dir);
 
     cJSON *json_Obj_Respnse = cJSON_Parse(response);
     cJSON *json_Obj_Client = cJSON_Parse(client_dir);
@@ -271,7 +275,9 @@ void do_get(int client_socket){
         }
         cJSON* item = cJSON_GetArrayItem(list_file_request, i);
         cJSON* name_file = cJSON_GetObjectItem(item, "name");
-        char file_path_name[MAX_PATH_LENGTH] = "../test/test_folder_1/";
+        char file_path_name[MAX_PATH_LENGTH];
+        strcpy(file_path_name, src_path);
+        strcat(file_path_name, "/");
         strcat(file_path_name, name_file->valuestring);
         FILE* file = fopen(file_path_name, "w");
         if(file == NULL)
@@ -286,12 +292,12 @@ void do_get(int client_socket){
     printf("GET end!\n");
 }
 
-void do_put(int client_socket){
+void do_put(int client_socket, char* src_path){
     printf("PUT start!\n");
     
     // Create clinet's folder json
     char client_dir[MAX_BUFFER_SIZE];
-    explore_directory("../test/test_folder_1", client_dir);
+    explore_directory(src_path, client_dir);
     send(client_socket, client_dir, strlen(client_dir), 0);
     char buffer[MAX_BUFFER_SIZE];
     clearBuffer(buffer);

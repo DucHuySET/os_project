@@ -19,8 +19,8 @@
 #define POST "POST"
 
 void sync_directory(int client_socket);
-void process_get(int client_socket);
-void process_put(int client_socket);
+void process_get(int client_socket, char* dest_path);
+void process_put(int client_socket, char* dest_path);
 void clearBuffer(char buffer[MAX_BUFFER_SIZE]);
 void compare_json_obj_to_GET(cJSON* json_Obj_Response, cJSON* json_Obj_Client, cJSON* list_req_file, int* file_count);
 
@@ -102,29 +102,28 @@ int main() {
 void sync_directory(int client_socket) {
 
     char buffer[MAX_BUFFER_SIZE];
+    clearBuffer(buffer);
+    recv(client_socket, buffer, sizeof(buffer), 0);
+    char dest_path[MAX_PATH_LENGTH];
+    clearBuffer(dest_path);
+    strcpy(dest_path, buffer);
+    send(client_socket, buffer, sizeof(buffer), 0);
 
-    // Nhận yêu cầu từ client
-    ssize_t received_bytes = recv(client_socket, buffer, sizeof(buffer), 0);
-    if (received_bytes <= 0) {
-        perror("Error receiving data");
-        return;
-    }
+    clearBuffer(buffer);
+    recv(client_socket, buffer, sizeof(buffer), 0);
 
-    buffer[received_bytes] = '\0'; // Đảm bảo kết thúc chuỗi
-
-    // Thực hiện đồng bộ thư mục hoặc xử lý yêu cầu từ client ở đây
     printf("Received request from client: %s\n", buffer);
     // Gửi phản hồi về client
     char response[MAX_BUFFER_SIZE] = "Request received successfully. With content: ";
     strcat(response, buffer);
     send(client_socket, response, strlen(response), 0);
     if(strcmp(buffer, GET)==0){
-        process_get(client_socket);
+        process_get(client_socket, dest_path);
     }else if(strcmp(buffer, PUT) == 0){
-        process_put(client_socket);
+        process_put(client_socket, dest_path);
     }else if(strcmp(buffer, POST) == 0){
-        process_get(client_socket);
-        process_put(client_socket);
+        process_get(client_socket, dest_path);
+        process_put(client_socket, dest_path);
     }
 }
 
@@ -132,12 +131,12 @@ void clearBuffer(char buffer[MAX_BUFFER_SIZE]){
     memset(buffer, 0, MAX_BUFFER_SIZE);
 }
 
-void process_get(int client_socket){
+void process_get(int client_socket, char* dest_path){
     char buffer[MAX_BUFFER_SIZE];
     char json_tmp[MAX_BUFFER_SIZE];
     json_tmp[0]='\0';
     printf("%s\n", json_tmp);
-    explore_directory("../test/test_folder_2", json_tmp);
+    explore_directory(dest_path, json_tmp);
     send(client_socket, json_tmp, strlen(json_tmp), 0);
 
     //receive list file req from client
@@ -179,7 +178,7 @@ void process_get(int client_socket){
     }
 }
 
-void process_put(int client_socket){
+void process_put(int client_socket, char* dest_path){
     char buffer[MAX_BUFFER_SIZE];
     char json_tmp[MAX_BUFFER_SIZE];
     clearBuffer(json_tmp);
@@ -189,7 +188,7 @@ void process_put(int client_socket){
     clearBuffer(buffer);
 
     char ser_dir[MAX_BUFFER_SIZE];
-    explore_directory("../test/test_folder_2",ser_dir);
+    explore_directory(dest_path,ser_dir);
     cJSON* json_object_client = cJSON_Parse(json_tmp);
     cJSON* json_object_ser = cJSON_Parse(ser_dir);
     cJSON* json_list_file = cJSON_CreateArray();
