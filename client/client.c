@@ -89,13 +89,24 @@ int main(int argc, char* argv[]) {
     printf("Connected to server.\n");
     
     if (strcmp(argv[3], GET) == 0){
+        send(client_socket, GET, sizeof(GET), 0);
+        char buffer[MAX_BUFFER_SIZE];
+        recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
+        printf("%s\n", buffer);
         do_get(client_socket);
     }else if (strcmp(argv[3], PUT) == 0)
-    {
+    {   
+        send(client_socket, PUT, sizeof(PUT), 0);
+        char buffer[MAX_BUFFER_SIZE];
+        clearBuffer(buffer);
+        recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
         do_put(client_socket);
     }else if (strcmp(argv[3], POST) == 0)
     {   
         send(client_socket, POST, sizeof(POST), 0);
+        char buffer[MAX_BUFFER_SIZE];
+        clearBuffer(buffer);
+        recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
         do_get(client_socket);
         do_put(client_socket);
     }else {
@@ -226,10 +237,8 @@ bool is_valid_path(const char *path) {
 void do_get(int client_socket){
     printf("GET start!\n");
     char response[MAX_BUFFER_SIZE];
-    send(client_socket, GET, sizeof(GET), 0);
     char buffer[MAX_BUFFER_SIZE];
-    recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
-    printf("%s\n", buffer);
+    clearBuffer(buffer);
     // Receive directory info from server
     recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
     strcpy(response, buffer);
@@ -279,15 +288,12 @@ void do_get(int client_socket){
 
 void do_put(int client_socket){
     printf("PUT start!\n");
-    send(client_socket, PUT, sizeof(PUT), 0);
-    char buffer[MAX_BUFFER_SIZE];
-    clearBuffer(buffer);
-    recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
+    
     // Create clinet's folder json
     char client_dir[MAX_BUFFER_SIZE];
     explore_directory("../test/test_folder_1", client_dir);
     send(client_socket, client_dir, strlen(client_dir), 0);
-
+    char buffer[MAX_BUFFER_SIZE];
     clearBuffer(buffer);
     recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
     char json_tmp[MAX_BUFFER_SIZE];
