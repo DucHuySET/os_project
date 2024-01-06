@@ -1,7 +1,7 @@
 #Operator System Project
 ##A project emulate rsync
 
-client syntax: source_address destination_address options
+client syntax: ./client source_address destination_address options
 
 source_address & destination_address (pending)
 - for local: folder_path
@@ -22,17 +22,16 @@ gcc server.c ../utils/*.c ../include/*.c  -o server -lssl -lcrypto
 ./server
 ```
 result: Server listening on port 12345...
+
+for client, can modify GET, PUT, POST
 ```
 cd ..
 cd client
 gcc client.c ../utils/*.c ../include/*.c  -o client -lssl -lcrypto
-./client
+./client ../test/test_folder_1 ../test/test_folder_2 GET
 ```
 result: 
+
 Connected to server
-
-Enter a command:
-
-Input: "src dest GET"
 
 Then observe result
