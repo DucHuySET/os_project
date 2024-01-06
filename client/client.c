@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 
 #include "../utils/folder_utils.h"
@@ -14,6 +15,8 @@
 #define MAX_BUFFER_SIZE 1024
 #define MAX_WORDS 50
 #define MAX_WORD_LENGTH 100
+#define MAX_PATH_LENGTH 1024
+#define MAX_IP_LENGTH 40 //IPv6 has max length 39
 #define GET "GET"
 #define PUT "PUT"
 #define POST "POST"
@@ -25,15 +28,44 @@ void parseInput(char* parsedInput[MAX_WORDS], char user_input[MAX_BUFFER_SIZE]);
 
 void do_get(int client_socket);
 
+void do_put(int client_socket);
+
+void do_post(int client_socket);
+
 void clearBuffer(char buffer[MAX_BUFFER_SIZE]);
 
 void compare_json_obj_to_GET(cJSON* json_Obj_Response, cJSON* json_Obj_Client, cJSON* list_req_file, int* file_count);
 
-int main() {
+void print_syntax();
+
+void parse_dest();
+
+bool is_valid_path(const char *path);
+
+int main(int argc, char* argv[]) {
+    if (argc < 4){
+        printf("Too few argument, check again!\n");
+        print_syntax();
+        return 1;
+    }else if (argc > 4)
+    {
+        printf("Too much argument, check again!\n");
+        print_syntax();
+        return 1;
+    }
+    //declare and clear input var
+    char src_path[MAX_PATH_LENGTH]; memset(src_path, 0, strlen(src_path));
+    char dest_ip[MAX_IP_LENGTH]; memset(dest_ip, 0, strlen(dest_ip));
+    char dest_path[MAX_PATH_LENGTH]; memset(dest_path, 0, strlen(dest_path));
+
+    if(is_valid_path(argv[1])){
+        strcpy(src_path, argv[1]);
+    }
+    parse_dest(dest_ip, dest_path, argv[2]); 
+
     int client_socket;
     struct sockaddr_in server_address;
     char user_input[MAX_BUFFER_SIZE];
-    int count_tmp = 0;
     char* parsedInput[MAX_WORDS];
 
     // Tạo socket
@@ -56,41 +88,21 @@ int main() {
 
     printf("Connected to server.\n");
     
-    while (1) {
-        int retFlag;
-        getUserInput(user_input, &retFlag);
-        if (retFlag == 2)
-            break;
-
-        // Gửi yêu cầu đóng kết nối nếu người dùng nhập "EXIT"
-        if (strcmp(user_input, "EXIT") == 0) {
-            const char* exit_request = "EXIT";
-            send(client_socket, exit_request, strlen(exit_request), 0);
-            break;
-        }
-
-        parseInput(parsedInput, user_input);
-
-        if (strcmp(parsedInput[2], GET) == 0){
-            do_get(client_socket);
-        }else if (strcmp(parsedInput[2], PUT) == 0)
-        {
-            // do_put();
-        }else if (strcmp(parsedInput[2], POST) == 0)
-        {
-            // do_post();
-        }else {
-            printf("Option not valid, please check again!");
-            break;
-        }
-
-        // Nhận phản hồi từ server
-        // char sync_status[MAX_BUFFER_SIZE];
-        // recv(client_socket, sync_status, MAX_BUFFER_SIZE, 0);
-        // printf("Server response: %s\n", sync_status);
-        
-        count_tmp++;
+    if (strcmp(argv[3], GET) == 0){
+        do_get(client_socket);
+    }else if (strcmp(argv[3], PUT) == 0)
+    {
+        do_put(client_socket);
+    }else if (strcmp(argv[3], POST) == 0)
+    {   
+        send(client_socket, POST, sizeof(POST), 0);
+        do_get(client_socket);
+        do_put(client_socket);
+    }else {
+        printf("Method not valid, please check again!");
+        return 1;
     }
+
 
     // Đóng kết nối
     close(client_socket);
@@ -131,64 +143,10 @@ void parseInput(char* parsedInput[MAX_WORDS], char user_input[MAX_BUFFER_SIZE]){
         word_count++;
         token = strtok(NULL, " ");
     }
-    int i;
-}
-
-void do_get(int client_socket){
-    char response[MAX_BUFFER_SIZE];
-    send(client_socket, GET, sizeof(GET), 0);
-    char buffer[MAX_BUFFER_SIZE];
-    recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
-    printf("%s\n", buffer);
-    // Receive directory info from server
-    recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
-    strcpy(response, buffer);
-    clearBuffer(buffer);
-    // Create clinet's folder json
-    char client_dir[MAX_JSON_BUFFER];
-    explore_directory("../test/test_folder_1", client_dir);
-
-    cJSON *json_Obj_Respnse = cJSON_Parse(response);
-    cJSON *json_Obj_Client = cJSON_Parse(client_dir);
-    cJSON *list_file_request = cJSON_CreateArray();
-    int file_req_count = 0;
-
-    if (json_Obj_Respnse == NULL || !cJSON_IsArray(json_Obj_Respnse) || json_Obj_Client == NULL || !cJSON_IsArray(json_Obj_Client)) {
-        fprintf(stderr, "Error: Invalid JSON array.\n");
-        return ;
-    }
-    compare_json_obj_to_GET(json_Obj_Respnse, json_Obj_Client, list_file_request, &file_req_count);
-    
-    char json_tmp[MAX_BUFFER_SIZE];
-    strcpy(json_tmp, cJSON_Print(list_file_request));
-
-    send(client_socket, json_tmp, strlen(json_tmp), 0);
-    printf("%d", file_req_count);
-    int i;
-    for(i=0; i<file_req_count; i++){
-        size_t bytes_recv;
-        bytes_recv = recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
-        if (bytes_recv <= 0){
-            break;
-        }
-        cJSON* item = cJSON_GetArrayItem(list_file_request, i);
-        cJSON* name_file = cJSON_GetObjectItem(item, "name");
-        char file_path_name[MAX_PATH_LENGTH] = "../test/test_folder_1/";
-        strcat(file_path_name, name_file->valuestring);
-        FILE* file = fopen(file_path_name, "w");
-        if(file == NULL)
-        {
-            perror("[-]Error in creating file.\n");
-            exit(1);
-        }
-        fprintf(file, "%s", buffer);
-        clearBuffer(buffer);
-        fclose(file);
-    }
 }
 
 void clearBuffer(char buffer[MAX_BUFFER_SIZE]){
-    memset(buffer, 0, strlen(buffer));
+    memset(buffer, 0, MAX_BUFFER_SIZE);
 }
 
 
@@ -231,4 +189,142 @@ void compare_json_obj_to_GET(cJSON* json_Obj_Response, cJSON* json_Obj_Client, c
             check =  false;
         } 
     }
+}
+
+void print_syntax(){
+    printf("Right syntax: ./client source_address destination_IP@destination_address method\n");
+    printf("GET: one way sync from server\nPUT: one way sync from client\nPOST: two ways sync\n");
+}
+
+void parse_dest(char* dest_ip, char* dest_path, char* input){
+    bool check = false;
+    int i = 0;
+    for (i; i<strlen(input); i++){
+        if (input[i] == '@'){
+            check = true;
+            break;
+        }
+    }
+    if(check){
+        char input_tmp[MAX_PATH_LENGTH];
+        strcpy(input_tmp, input);
+        char* token = strtok(input_tmp, "@");
+        strcpy(dest_ip, token);
+        token = strtok(NULL, "@");
+        strcpy(dest_path, token);
+    }else{
+        strcpy(dest_path, input);
+    }
+}
+
+bool is_valid_path(const char *path) {
+    struct stat st;
+    return stat(path, &st) == 0;
+}
+
+
+void do_get(int client_socket){
+    printf("GET start!\n");
+    char response[MAX_BUFFER_SIZE];
+    send(client_socket, GET, sizeof(GET), 0);
+    char buffer[MAX_BUFFER_SIZE];
+    recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
+    printf("%s\n", buffer);
+    // Receive directory info from server
+    recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
+    strcpy(response, buffer);
+    clearBuffer(buffer);
+    // Create clinet's folder json
+    char client_dir[MAX_JSON_BUFFER];
+    explore_directory("../test/test_folder_1", client_dir);
+
+    cJSON *json_Obj_Respnse = cJSON_Parse(response);
+    cJSON *json_Obj_Client = cJSON_Parse(client_dir);
+    cJSON *list_file_request = cJSON_CreateArray();
+    int file_req_count = 0;
+
+    if (json_Obj_Respnse == NULL || !cJSON_IsArray(json_Obj_Respnse) || json_Obj_Client == NULL || !cJSON_IsArray(json_Obj_Client)) {
+        fprintf(stderr, "Error: Invalid JSON array.\n");
+        return ;
+    }
+    compare_json_obj_to_GET(json_Obj_Respnse, json_Obj_Client, list_file_request, &file_req_count);
+    
+    char json_tmp[MAX_BUFFER_SIZE];
+    strcpy(json_tmp, cJSON_Print(list_file_request));
+
+    send(client_socket, json_tmp, strlen(json_tmp), 0);
+    int i;
+    for(i=0; i<file_req_count; i++){
+        size_t bytes_recv;
+        bytes_recv = recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
+        if (bytes_recv <= 0){
+            break;
+        }
+        cJSON* item = cJSON_GetArrayItem(list_file_request, i);
+        cJSON* name_file = cJSON_GetObjectItem(item, "name");
+        char file_path_name[MAX_PATH_LENGTH] = "../test/test_folder_1/";
+        strcat(file_path_name, name_file->valuestring);
+        FILE* file = fopen(file_path_name, "w");
+        if(file == NULL)
+        {
+            perror("[-]Error in creating file.\n");
+            exit(1);
+        }
+        fprintf(file, "%s", buffer);
+        clearBuffer(buffer);
+        fclose(file);
+    }
+    printf("GET end!\n");
+}
+
+void do_put(int client_socket){
+    printf("PUT start!\n");
+    send(client_socket, PUT, sizeof(PUT), 0);
+    char buffer[MAX_BUFFER_SIZE];
+    clearBuffer(buffer);
+    recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
+    // Create clinet's folder json
+    char client_dir[MAX_BUFFER_SIZE];
+    explore_directory("../test/test_folder_1", client_dir);
+    send(client_socket, client_dir, strlen(client_dir), 0);
+
+    clearBuffer(buffer);
+    recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
+    char json_tmp[MAX_BUFFER_SIZE];
+    clearBuffer(json_tmp);
+    strcpy(json_tmp, buffer);
+    clearBuffer(buffer);
+    printf("%s\n", json_tmp);
+    
+    cJSON* list_req_file = cJSON_Parse(json_tmp);
+    cJSON* item_tmp;
+    if (list_req_file == NULL || !cJSON_IsArray(list_req_file)) {
+        fprintf(stderr, "Error: Invalid JSON list file req array.\n");
+        return ;
+    }
+    cJSON_ArrayForEach(item_tmp, list_req_file){
+        
+        cJSON* file_path = cJSON_GetObjectItem(item_tmp, "full_path");
+        
+        if(cJSON_IsString(file_path) && (file_path->valuestring) != NULL){
+            FILE* file = fopen(file_path->valuestring, "r");
+            if(!file){
+                perror("Error opening file\n");
+                exit(EXIT_FAILURE); 
+            }
+            while (1)
+            {   
+                size_t byte_read = fread(buffer, 1, MAX_BUFFER_SIZE, file);
+                if (byte_read <= 0) {
+                    break; // End of file or error
+                }
+                if (send(client_socket, buffer, byte_read, 0) == -1) {
+                    perror("Error sending data\n");
+                    fclose(file);
+                    exit(EXIT_FAILURE);
+                }
+            }
+        }
+    }
+    printf("PUT end!\n");
 }
