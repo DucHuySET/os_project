@@ -210,7 +210,7 @@ void process_put(int client_socket, char* dest_path){
         }
         cJSON* item = cJSON_GetArrayItem(json_list_file, i);
         cJSON* name_file = cJSON_GetObjectItem(item, "name");
-        char file_path_name[MAX_PATH_LENGTH] = "../test/test_folder_2/";
+        char file_path_name[MAX_PATH_LENGTH] = dest_path;
         strcat(file_path_name, name_file->valuestring);
         FILE* file = fopen(file_path_name, "w");
         if(file == NULL)

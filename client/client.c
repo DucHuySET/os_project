@@ -92,6 +92,7 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    //Gui folder path can duyet tren server cho phia server
     send(client_socket, dest_path, sizeof(dest_path), 0);
     char buffer[MAX_BUFFER_SIZE];
     recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
