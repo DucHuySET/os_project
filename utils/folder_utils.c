@@ -23,7 +23,7 @@ int calculate_sha256(const char *file_path, unsigned char hash[SHA256_DIGEST_LEN
 
     EVP_MD_CTX *mdctx;
     const EVP_MD *md = EVP_sha256();  // Use the SHA-256 message digest algorithm
-    mdctx = EVP_MD_CTX_new();
+    mdctx = EVP_MD_CTX_new();// mdctx-massage digest context
 
     if (!mdctx) {
         perror("Error creating message digest context");
@@ -35,7 +35,7 @@ int calculate_sha256(const char *file_path, unsigned char hash[SHA256_DIGEST_LEN
 
     size_t bytesRead;
     unsigned char buffer[SHA_BUFFER_SIZE];
-
+    // read content
     while ((bytesRead = fread(buffer, 1, SHA_BUFFER_SIZE, file)) != 0) {
         EVP_DigestUpdate(mdctx, buffer, bytesRead);
     }
@@ -55,7 +55,7 @@ void explore_directory(const char *path, char *jsonOutput){
 
     struct stat file_stat;
 
-    if((dir = opendir(path)) != NULL){
+    if((dir = opendir(path)) != NULL){ //open directory
         while ((entry = readdir(dir)) != NULL)
         {
             if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {

@@ -4,6 +4,9 @@
         "string.h": "c",
         "dirent.h": "c",
         "stat.h": "c",
-        "typeinfo": "c"
+        "typeinfo": "c",
+        "stdbool.h": "c",
+        "sha.h": "c",
+        "evp.h": "c"
     }
 }
