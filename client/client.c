@@ -101,6 +101,7 @@ int main(int argc, char* argv[]) {
     printf("Connected to server.\n");
     
     if (strcmp(argv[3], GET) == 0){
+        //send request GET to server
         send(client_socket, GET, sizeof(GET), 0);
         recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
         printf("%s\n", buffer);
@@ -266,9 +267,9 @@ void do_get(int client_socket, char *src_path){
 
     cJSON *json_Obj_Respnse = cJSON_Parse(response);
     cJSON *json_Obj_Client = cJSON_Parse(client_dir);
-    cJSON *list_file_request = cJSON_CreateArray();
+    cJSON *list_file_request = cJSON_CreateArray(); //list file need server send back
     int file_req_count = 0;
-
+    //check if json is valid
     if (json_Obj_Respnse == NULL || !cJSON_IsArray(json_Obj_Respnse) || json_Obj_Client == NULL || !cJSON_IsArray(json_Obj_Client)) {
         fprintf(stderr, "Error: Invalid JSON array.\n");
         return ;
@@ -277,9 +278,10 @@ void do_get(int client_socket, char *src_path){
     
     char json_tmp[MAX_BUFFER_SIZE];
     strcpy(json_tmp, cJSON_Print(list_file_request));
-
+    //send list request file to server
     send(client_socket, json_tmp, strlen(json_tmp), 0);
     int i;
+    //for ech file in list, save file
     for(i=0; i<file_req_count; i++){
         size_t bytes_recv;
         bytes_recv = recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
@@ -289,6 +291,7 @@ void do_get(int client_socket, char *src_path){
         cJSON* item = cJSON_GetArrayItem(list_file_request, i);
         cJSON* name_file = cJSON_GetObjectItem(item, "name");
         char file_path_name[MAX_PATH_LENGTH];
+        //join path
         strcpy(file_path_name, src_path);
         strcat(file_path_name, "/");
         strcat(file_path_name, name_file->valuestring);

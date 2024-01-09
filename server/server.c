@@ -37,9 +37,9 @@ int main() {
     }
 
     // Config Server's address
-    server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = INADDR_ANY;
-    server_address.sin_port = htons(PORT);
+    server_address.sin_family = AF_INET; //connection base on IPv4
+    server_address.sin_addr.s_addr = INADDR_ANY; //receive from any address on server
+    server_address.sin_port = htons(PORT); //convert port to Network Byte Order
 
     // Bind server's address to socket
     if (bind(server_socket, (struct sockaddr*)&server_address, sizeof(server_address)) == -1) {
