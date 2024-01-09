@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
     if (strlen(dest_ip) == 0){
         server_address.sin_addr.s_addr = INADDR_ANY;
     }else{
-        if (inet_pton(AF_INET, dest_ip, &server_address.sin_addr) <= 0) {
+        if (inet_pton(AF_INET, dest_ip, &server_address.sin_addr) <= 0) {//192.168.1.1
             perror("Invalid address/Address not supported");
         }
     }
@@ -192,9 +192,14 @@ void compare_json_obj_to_GET(cJSON* json_Obj_Response, cJSON* json_Obj_Client, c
                         check = true;
                         break;
                     }else{
-                        
                         printf("File %s with same name but different.\n", file_name_res);
-                        check = true; //TODO: need to get same name file
+                        cJSON* mtime_res = cJSON_GetObjectItem(item_res, "m_time");
+                        cJSON* mtime_cli = cJSON_GetObjectItem(item_cli, "m_time");
+                        if(mtime_cli >= mtime_res){
+                            check = true;
+                        }else{
+                            printf("File %s at server is newer\n", file_name_res);
+                        }
                     }
                 }
             }
@@ -253,6 +258,7 @@ void do_get(int client_socket, char *src_path){
     // Receive directory info from server
     recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
     strcpy(response, buffer);
+    printf("%s\n", response);
     clearBuffer(buffer);
     // Create clinet's folder json
     char client_dir[MAX_JSON_BUFFER];

@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE
 #include"folder_utils.h"
 
 #include <stdio.h>
@@ -7,6 +8,8 @@
 #include <openssl/sha.h> 
 #include <dirent.h>
 #include <stdbool.h>
+#include <sys/stat.h>
+#include <time.h>
 
 #include "../include/cJSON.h"
 
@@ -50,6 +53,8 @@ void explore_directory(const char *path, char *jsonOutput){
 
     cJSON *json_array = cJSON_CreateArray();
 
+    struct stat file_stat;
+
     if((dir = opendir(path)) != NULL){
         while ((entry = readdir(dir)) != NULL)
         {
@@ -61,11 +66,20 @@ void explore_directory(const char *path, char *jsonOutput){
                 calculate_sha256(full_path, hash);
                 
                 if(entry->d_type == FILE_T){
+                    if (stat(full_path, &file_stat) != 0) {
+                        perror("Error getting information for file");
+                        return ;
+                    }
+                    char timeStr[MAX_NAME_LENGTH];
+                    strftime(timeStr, sizeof(timeStr), pattern_1, localtime(&file_stat.st_mtime));
+                    strcpy(timeStr, time_to_string(&file_stat.st_mtime));
+
                     cJSON *file_obj = cJSON_CreateObject();
                     cJSON_AddStringToObject(file_obj, "name", entry->d_name);
                     cJSON_AddStringToObject(file_obj, "type", "file");
                     cJSON_AddStringToObject(file_obj, "hash", hash_to_string(hash));
                     cJSON_AddStringToObject(file_obj, "full_path", full_path);
+                    cJSON_AddStringToObject(file_obj, "m_time", timeStr);
                     cJSON_AddItemToArray(json_array, file_obj);
                 }
             }
@@ -95,4 +109,18 @@ char *hash_to_string(unsigned char hash[SHA256_DIGEST_LENGTH]) {
 
 void path_join(char * path, char* adding, char* result){
 
+}
+
+char* time_to_string(time_t* time_info){
+    char* timeStr = (char *)malloc(MAX_PATH_LENGTH + 1);
+    strftime(timeStr, MAX_PATH_LENGTH, pattern_1, localtime(time_info));
+    return timeStr;
+}
+
+time_t string_to_time(char* timeStr){
+    struct tm tm_struct;
+    time_t time_info;
+    strptime(timeStr, pattern_1, &tm_struct);
+    time_info =  mktime(&tm_struct);
+    return time_info;
 }
