@@ -1,0 +1,32 @@
+#include <stdio.h>
+#include <sys/stat.h>
+#include <time.h>
+
+// Hàm so sánh thời gian chỉnh sửa giữa hai file
+int compare_file_modified_times(const char *file1, const char *file2) {
+    struct stat st1, st2;
+
+    // Lấy thông tin thời gian chỉnh sửa của file1
+    if (stat(file1, &st1) != 0) {
+        perror("Error getting information for file1");
+        return -1;
+    }
+
+    // Lấy thông tin thời gian chỉnh sửa của file2
+    if (stat(file2, &st2) != 0) {
+        perror("Error getting information for file2");
+        return -1;
+    }
+
+    // So sánh thời gian chỉnh sửa của hai file
+    if (st1.st_mtime > st2.st_mtime) {
+        printf("%s is more recently modified than %s\n", file1, file2);
+        return 1;
+    } else if (st1.st_mtime < st2.st_mtime) {
+        printf("%s is more recently modified than %s\n", file2, file1);
+        return -1;
+    } else {
+        printf("%s and %s have the same modification time\n", file1, file2);
+        return 0;
+    }
+}

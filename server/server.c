@@ -54,7 +54,7 @@ int main() {
     }
     printf("Server listening on port %d...\n", PORT);
 
-    struct pollfd fds[1];
+    struct pollfd fds[1]; //fd: file discription
     fds[0].fd = server_socket;
     fds[0].events = POLLIN; // Check read event
 
@@ -186,6 +186,7 @@ void process_put(int client_socket, char* dest_path){
     recv(client_socket, buffer, MAX_BUFFER_SIZE, 0);
     strcpy(json_tmp, buffer);
     clearBuffer(buffer);
+    printf("%s\n", json_tmp);
 
     char ser_dir[MAX_BUFFER_SIZE];
     explore_directory(dest_path,ser_dir);
@@ -210,7 +211,10 @@ void process_put(int client_socket, char* dest_path){
         }
         cJSON* item = cJSON_GetArrayItem(json_list_file, i);
         cJSON* name_file = cJSON_GetObjectItem(item, "name");
-        char file_path_name[MAX_PATH_LENGTH] = dest_path;
+        char file_path_name[MAX_PATH_LENGTH];
+        memset(file_path_name, 0, MAX_PATH_LENGTH);
+        strcpy(file_path_name, dest_path);
+        strcat(file_path_name, "/");
         strcat(file_path_name, name_file->valuestring);
         FILE* file = fopen(file_path_name, "w");
         if(file == NULL)
@@ -244,9 +248,14 @@ void compare_json_obj_to_GET(cJSON* json_Obj_Response, cJSON* json_Obj_Client, c
                         check = true;
                         break;
                     }else{
-                        
                         printf("File %s with same name but different.\n", file_name_res);
-                        check = true; //TODO: need to get same name file
+                        cJSON* mtime_res = cJSON_GetObjectItem(item_res, "m_time");
+                        cJSON* mtime_cli = cJSON_GetObjectItem(item_cli, "m_time");
+                        if(mtime_res >= mtime_cli){
+                            check = true;
+                        }else{
+                            printf("File %s at client is newer\n", file_name_res);
+                        }
                     }
                 }
             }

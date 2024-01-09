@@ -35,9 +35,12 @@
 #define MAX_PATH_LENGTH 1024
 #define MAX_JSON_BUFFER 4096
 #define SHA256_DIGEST_HEX_LENGTH (SHA256_DIGEST_LENGTH * 2)
+#define pattern_1 "%Y-%m-%d %H:%M:%S"
 
 # define DIR_T	4
 # define FILE_T 8
+
+#define _XOPEN_SOURCE
 
 typedef struct file_struc{
     char name[MAX_NAME_LENGTH];
@@ -54,6 +57,7 @@ typedef struct folder_struc{
 
 int calculate_sha256(const char *file_path, unsigned char hash[SHA256_DIGEST_LENGTH]);
 void explore_directory(const char *path, char *jsonOutput);
-char *hash_to_string(unsigned char hash[SHA256_DIGEST_LENGTH]);
-
+char *hash_to_string(unsigned char hash[SHA256_DIGEST_LENGTH]);\
+char* time_to_string(time_t* time_info);
+time_t string_to_time(char* timeStr);
 #endif
