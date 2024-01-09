@@ -2,11 +2,11 @@
 ##A project emulate rsync
 
 Contributors:
--Nguyễn Minh Anh
--Trần Bách Chiến
--Nguyễn Đức Huy
--Trần Văn Thắng
--Nguyễn Minh Tuấn
+- Nguyễn Minh Anh
+- Trần Bách Chiến
+- Nguyễn Đức Huy
+- Trần Văn Thắng
+- Nguyễn Minh Tuấn
 
 client syntax: ./client source_path destination_ip_addr@destination_path options
 
