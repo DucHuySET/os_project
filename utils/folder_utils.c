@@ -51,7 +51,7 @@ void explore_directory(const char *path, char *jsonOutput){
     DIR *dir;
     struct dirent *entry;
 
-    cJSON *json_array = cJSON_CreateArray();
+    cJSON *json_array = cJSON_CreateArray();//create array json object
 
     struct stat file_stat;
 
@@ -74,8 +74,8 @@ void explore_directory(const char *path, char *jsonOutput){
                     strftime(timeStr, sizeof(timeStr), pattern_1, localtime(&file_stat.st_mtime));
                     strcpy(timeStr, time_to_string(&file_stat.st_mtime));
 
-                    cJSON *file_obj = cJSON_CreateObject();
-                    cJSON_AddStringToObject(file_obj, "name", entry->d_name);
+                    cJSON *file_obj = cJSON_CreateObject();// create json object in {}
+                    cJSON_AddStringToObject(file_obj, "name", entry->d_name);// add string format key: value
                     cJSON_AddStringToObject(file_obj, "type", "file");
                     cJSON_AddStringToObject(file_obj, "hash", hash_to_string(hash));
                     cJSON_AddStringToObject(file_obj, "full_path", full_path);
